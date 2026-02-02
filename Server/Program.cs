@@ -17,21 +17,12 @@ Log.Logger = new LoggerConfiguration()
 
 builder.Host.UseSerilog();
 
-// Настройка строки подключения к базе данных
-// Приоритет: переменная окружения -> appsettings.json
-var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL") 
-    ?? builder.Configuration.GetConnectionString("DefaultConnection");
-
-// Преобразование Render.com DATABASE_URL в формат для Npgsql
-if (!string.IsNullOrEmpty(connectionString) && connectionString.StartsWith("postgres://"))
-{
-    var uri = new Uri(connectionString);
-    connectionString = $"Host={uri.Host};Port={uri.Port};Database={uri.AbsolutePath.Trim('/')};Username={uri.UserInfo.Split(':')[0]};Password={uri.UserInfo.Split(':')[1]};SSL Mode=Require;Trust Server Certificate=true";
-}
+// Используем SQLite для простоты развертывания
+var connectionString = "Data Source=/tmp/revit_updater.db";
 
 // Добавление сервисов в контейнер
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseNpgsql(connectionString));
+    options.UseSqlite(connectionString));
 
 // Настройка JWT аутентификации
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
