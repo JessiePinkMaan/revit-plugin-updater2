@@ -10,11 +10,11 @@ FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
 # Копируем файл проекта и восстанавливаем зависимости
-COPY ["update/Server/RevitPluginUpdater.Server.csproj", "Server/"]
+COPY ["Server/RevitPluginUpdater.Server.csproj", "Server/"]
 RUN dotnet restore "Server/RevitPluginUpdater.Server.csproj"
 
 # Копируем исходный код
-COPY update/ .
+COPY . .
 WORKDIR "/src/Server"
 
 # Собираем приложение
@@ -30,7 +30,7 @@ WORKDIR /app
 COPY --from=publish /app/publish .
 
 # Копируем статические файлы админки
-COPY update/AdminPanel/ ./wwwroot/
+COPY AdminPanel/ ./wwwroot/
 
 # Настраиваем переменные окружения
 ENV ASPNETCORE_ENVIRONMENT=Production
