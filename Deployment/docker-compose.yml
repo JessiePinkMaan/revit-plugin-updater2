@@ -1,0 +1,47 @@
+# Docker Compose для локальной разработки
+version: '3.8'
+
+services:
+  # PostgreSQL база данных
+  postgres:
+    image: postgres:15
+    container_name: revit-updater-db
+    environment:
+      POSTGRES_DB: revit_updater
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    networks:
+      - revit-updater-network
+
+  # ASP.NET Core API
+  api:
+    build:
+      context: ..
+      dockerfile: Deployment/Dockerfile
+    container_name: revit-updater-api
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - DATABASE_URL=postgres://postgres:password123@postgres:5432/revit_updater
+      - FileStorage__PluginsPath=/var/data/plugins
+    ports:
+      - "8080:8080"
+    volumes:
+      - plugin_files:/var/data/plugins
+    depends_on:
+      - postgres
+    networks:
+      - revit-updater-network
+
+volumes:
+  postgres_data:
+  plugin_files:
+
+networks:
+  revit-updater-network:
+    driver: bridge

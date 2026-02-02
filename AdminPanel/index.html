@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Админка - Система обновления плагинов Revit</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    
+    <style>
+        .sidebar {
+            min-height: 100vh;
+            background-color: #f8f9fa;
+        }
+        .main-content {
+            min-height: 100vh;
+        }
+        .plugin-card {
+            transition: transform 0.2s;
+        }
+        .plugin-card:hover {
+            transform: translateY(-2px);
+        }
+        .version-badge {
+            font-size: 0.8em;
+        }
+        .file-size {
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+        .loading {
+            display: none;
+        }
+        .loading.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <!-- Страница авторизации -->
+    <div id="loginPage" class="container-fluid vh-100 d-flex align-items-center justify-content-center">
+        <div class="row w-100">
+            <div class="col-md-4 mx-auto">
+                <div class="card shadow">
+                    <div class="card-body p-5">
+                        <div class="text-center mb-4">
+                            <i class="bi bi-shield-lock text-primary" style="font-size: 3rem;"></i>
+                            <h3 class="mt-3">Вход в систему</h3>
+                            <p class="text-muted">Система обновления плагинов Revit</p>
+                        </div>
+                        
+                        <form id="loginForm">
+                            <div class="mb-3">
+                                <label for="username" class="form-label">Имя пользователя</label>
+                                <input type="text" class="form-control" id="username" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="password" class="form-label">Пароль</label>
+                                <input type="password" class="form-control" id="password" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">
+                                <span class="loading spinner-border spinner-border-sm me-2" role="status"></span>
+                                Войти
+                            </button>
+                        </form>
+                        
+                        <div id="loginError" class="alert alert-danger mt-3" style="display: none;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Основная страница админки -->
+    <div id="adminPage" class="container-fluid" style="display: none;">
+        <div class="row">
+            <!-- Боковая панель -->
+            <div class="col-md-2 sidebar p-3">
+                <div class="d-flex align-items-center mb-4">
+                    <i class="bi bi-gear-fill text-primary me-2"></i>
+                    <h5 class="mb-0">Админка</h5>
+                </div>
+                
+                <nav class="nav flex-column">
+                    <a class="nav-link active" href="#" data-page="dashboard">
+                        <i class="bi bi-house me-2"></i>Дашборд
+                    </a>
+                    <a class="nav-link" href="#" data-page="plugins">
+                        <i class="bi bi-puzzle me-2"></i>Плагины
+                    </a>
+                    <a class="nav-link" href="#" data-page="upload">
+                        <i class="bi bi-cloud-upload me-2"></i>Загрузить
+                    </a>
+                </nav>
+                
+                <div class="mt-auto pt-4">
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="bi bi-person-circle me-2"></i>
+                        <span id="currentUser" class="small"></span>
+                    </div>
+                    <button class="btn btn-outline-danger btn-sm" onclick="logout()">
+                        <i class="bi bi-box-arrow-right me-1"></i>Выйти
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Основной контент -->
+            <div class="col-md-10 main-content p-4">
+                <!-- Дашборд -->
+                <div id="dashboardPage" class="page-content">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h2>Дашборд</h2>
+                        <button class="btn btn-outline-primary" onclick="refreshData()">
+                            <i class="bi bi-arrow-clockwise me-1"></i>Обновить
+                        </button>
+                    </div>
+                    
+                    <!-- Статистика -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card text-center">
+                                <div class="card-body">
+                                    <i class="bi bi-puzzle text-primary" style="font-size: 2rem;"></i>
+                                    <h3 id="totalPlugins" class="mt-2">0</h3>
+                                    <p class="text-muted mb-0">Всего плагинов</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card text-center">
+                                <div class="card-body">
+                                    <i class="bi bi-layers text-success" style="font-size: 2rem;"></i>
+                                    <h3 id="totalVersions" class="mt-2">0</h3>
+                                    <p class="text-muted mb-0">Всего версий</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card text-center">
+                                <div class="card-body">
+                                    <i class="bi bi-cloud-download text-info" style="font-size: 2rem;"></i>
+                                    <h3 id="totalDownloads" class="mt-2">N/A</h3>
+                                    <p class="text-muted mb-0">Скачиваний</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card text-center">
+                                <div class="card-body">
+                                    <i class="bi bi-hdd text-warning" style="font-size: 2rem;"></i>
+                                    <h3 id="totalSize" class="mt-2">0 MB</h3>
+                                    <p class="text-muted mb-0">Размер файлов</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Последние плагины -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Последние плагины</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="recentPlugins" class="row">
+                                <!-- Плагины будут загружены динамически -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Страница плагинов -->
+                <div id="pluginsPage" class="page-content" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h2>Управление плагинами</h2>
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createPluginModal">
+                            <i class="bi bi-plus-circle me-1"></i>Создать плагин
+                        </button>
+                    </div>
+                    
+                    <div id="pluginsList" class="row">
+                        <!-- Плагины будут загружены динамически -->
+                    </div>
+                </div>
+                
+                <!-- Страница загрузки -->
+                <div id="uploadPage" class="page-content" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h2>Загрузка новой версии</h2>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="card">
+                                <div class="card-body">
+                                    <form id="uploadVersionForm">
+                                        <div class="mb-3">
+                                            <label for="pluginSelect" class="form-label">Выберите плагин</label>
+                                            <select class="form-select" id="pluginSelect" required>
+                                                <option value="">Выберите плагин...</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label for="versionInput" class="form-label">Версия</label>
+                                            <input type="text" class="form-control" id="versionInput" 
+                                                   placeholder="Например: 1.2.0" required>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label for="releaseNotesInput" class="form-label">Описание изменений</label>
+                                            <textarea class="form-control" id="releaseNotesInput" rows="4" 
+                                                      placeholder="Описание изменений в новой версии..."></textarea>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label for="fileInput" class="form-label">Файл плагина</label>
+                                            <input type="file" class="form-control" id="fileInput" 
+                                                   accept=".dll,.exe,.zip,.rar" required>
+                                            <div class="form-text">Поддерживаемые форматы: .dll, .exe, .zip, .rar</div>
+                                        </div>
+                                        
+                                        <button type="submit" class="btn btn-success">
+                                            <span class="loading spinner-border spinner-border-sm me-2" role="status"></span>
+                                            <i class="bi bi-cloud-upload me-1"></i>Загрузить версию
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">Информация</h6>
+                                </div>
+                                <div class="card-body">
+                                    <p class="small text-muted">
+                                        <i class="bi bi-info-circle me-1"></i>
+                                        Загружайте только проверенные файлы плагинов. 
+                                        Система автоматически вычислит хеш файла для проверки целостности.
+                                    </p>
+                                    <p class="small text-muted">
+                                        <i class="bi bi-shield-check me-1"></i>
+                                        Максимальный размер файла: 100 MB
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно создания плагина -->
+    <div class="modal fade" id="createPluginModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Создать новый плагин</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="createPluginForm">
+                        <div class="mb-3">
+                            <label for="pluginName" class="form-label">Название плагина</label>
+                            <input type="text" class="form-control" id="pluginName" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="pluginDescription" class="form-label">Описание</label>
+                            <textarea class="form-control" id="pluginDescription" rows="3"></textarea>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="pluginUniqueId" class="form-label">Уникальный ID</label>
+                            <input type="text" class="form-control" id="pluginUniqueId" 
+                                   placeholder="Например: my-awesome-plugin" required>
+                            <div class="form-text">Используется для идентификации плагина в системе</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="initialFile" class="form-label">Первая версия (опционально)</label>
+                            <input type="file" class="form-control" id="initialFile" 
+                                   accept=".dll,.exe,.zip,.rar">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-primary" onclick="createPlugin()">
+                        <span class="loading spinner-border spinner-border-sm me-2" role="status"></span>
+                        Создать плагин
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Основной JavaScript -->
+    <script src="js/app.js"></script>
+</body>
+</html>

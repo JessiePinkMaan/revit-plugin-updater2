@@ -1,0 +1,35 @@
+# Конфигурация для развертывания на Render.com
+services:
+  # Web Service для ASP.NET Core API
+  - type: web
+    name: revit-plugin-updater
+    env: docker
+    dockerfilePath: ./Deployment/Dockerfile
+    plan: free
+    region: oregon
+    branch: main
+    buildCommand: ""
+    startCommand: ""
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ASPNETCORE_URLS
+        value: http://0.0.0.0:8080
+      - key: PORT
+        value: 8080
+      - key: DATABASE_URL
+        fromDatabase:
+          name: revit-updater-db
+          property: connectionString
+    disk:
+      name: plugin-files
+      mountPath: /var/data
+      sizeGB: 1
+
+# База данных PostgreSQL
+databases:
+  - name: revit-updater-db
+    databaseName: revit_updater
+    user: revit_user
+    plan: free
+    region: oregon
