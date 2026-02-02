@@ -111,12 +111,13 @@ using (var scope = app.Services.CreateScope())
     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     try
     {
-        await context.Database.MigrateAsync();
-        Log.Information("Миграции базы данных применены успешно");
+        // Создаем базу данных если её нет
+        await context.Database.EnsureCreatedAsync();
+        Log.Information("База данных SQLite создана/проверена успешно");
     }
     catch (Exception ex)
     {
-        Log.Error(ex, "Ошибка при применении миграций базы данных");
+        Log.Error(ex, "Ошибка при создании базы данных SQLite");
     }
 }
 
