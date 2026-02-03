@@ -26,43 +26,39 @@ namespace RevitPluginUpdater.Server.Services
         }
 
         /// <summary>
-        /// Сохраняет файл плагина на диск
+        /// Сохраняет файл плагина в базу данных (для тестирования)
         /// </summary>
-        public async Task<(string filePath, string fileName, long fileSize, string fileHash)> SavePluginFileAsync(
+        public async Task<(string filePath, string fileName, long fileSize, string fileHash, byte[] fileContent)> SavePluginFileAsync(
             IFormFile file, string pluginUniqueId, string version)
         {
             try
             {
-                // Создаем директорию для плагина
-                var pluginDir = Path.Combine(_pluginsPath, pluginUniqueId);
-                if (!Directory.Exists(pluginDir))
-                {
-                    Directory.CreateDirectory(pluginDir);
-                }
+                _logger.LogInformation("Сохранение файла плагина в базу данных: {FileName}", file.FileName);
 
                 // Генерируем имя файла с версией
                 var fileExtension = Path.GetExtension(file.FileName);
                 var fileName = $"{pluginUniqueId}_v{version}{fileExtension}";
-                var filePath = Path.Combine(pluginDir, fileName);
+                var filePath = $"database://{fileName}"; // Виртуальный путь
 
-                // Сохраняем файл
-                using (var stream = new FileStream(filePath, FileMode.Create))
+                // Читаем содержимое файла
+                byte[] fileContent;
+                using (var memoryStream = new MemoryStream())
                 {
-                    await file.CopyToAsync(stream);
+                    await file.CopyToAsync(memoryStream);
+                    fileContent = memoryStream.ToArray();
                 }
 
                 // Вычисляем хеш файла
-                var fileHash = await ComputeFileHashAsync(filePath);
-                var fileInfo = new FileInfo(filePath);
+                var fileHash = ComputeFileHash(fileContent);
 
-                _logger.LogInformation("Файл плагина сохранен: {FilePath}, размер: {Size} байт", 
-                    filePath, fileInfo.Length);
+                _logger.LogInformation("Файл плагина подготовлен для сохранения в БД: {FileName}, размер: {Size} байт", 
+                    fileName, fileContent.Length);
 
-                return (filePath, fileName, fileInfo.Length, fileHash);
+                return (filePath, fileName, fileContent.Length, fileHash, fileContent);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Ошибка при сохранении файла плагина: {FileName}", file.FileName);
+                _logger.LogError(ex, "Ошибка при подготовке файла плагина: {FileName}", file.FileName);
                 throw;
             }
         }
@@ -92,30 +88,40 @@ namespace RevitPluginUpdater.Server.Services
         }
 
         /// <summary>
-        /// Получает файл для скачивания
+        /// Получает файл из базы данных для скачивания
         /// </summary>
-        public async Task<(byte[] fileBytes, string fileName, string contentType)?> GetPluginFileAsync(string filePath)
+        public (byte[] fileBytes, string fileName, string contentType)? GetPluginFileFromDatabase(byte[] fileContent, string fileName)
         {
             try
             {
-                if (!File.Exists(filePath))
+                if (fileContent == null || fileContent.Length == 0)
                 {
-                    _logger.LogWarning("Файл для скачивания не найден: {FilePath}", filePath);
+                    _logger.LogWarning("Содержимое файла пустое: {FileName}", fileName);
                     return null;
                 }
 
-                var fileBytes = await File.ReadAllBytesAsync(filePath);
-                var fileName = Path.GetFileName(filePath);
                 var contentType = GetContentType(fileName);
 
-                _logger.LogInformation("Файл плагина подготовлен для скачивания: {FilePath}", filePath);
-                return (fileBytes, fileName, contentType);
+                _logger.LogInformation("Файл плагина подготовлен для скачивания из БД: {FileName}, размер: {Size} байт", 
+                    fileName, fileContent.Length);
+                
+                return (fileContent, fileName, contentType);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Ошибка при получении файла плагина: {FilePath}", filePath);
+                _logger.LogError(ex, "Ошибка при получении файла из БД: {FileName}", fileName);
                 return null;
             }
+        }
+
+        /// <summary>
+        /// Вычисляет SHA256 хеш массива байтов
+        /// </summary>
+        private string ComputeFileHash(byte[] fileContent)
+        {
+            using var sha256 = SHA256.Create();
+            var hashBytes = sha256.ComputeHash(fileContent);
+            return Convert.ToHexString(hashBytes).ToLowerInvariant();
         }
 
         /// <summary>

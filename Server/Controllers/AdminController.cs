@@ -116,7 +116,7 @@ namespace RevitPluginUpdater.Server.Controllers
                 // Если загружен файл, создаем первую версию
                 if (file != null && file.Length > 0)
                 {
-                    var (filePath, fileName, fileSize, fileHash) = await _fileService.SavePluginFileAsync(
+                    var (filePath, fileName, fileSize, fileHash, fileContent) = await _fileService.SavePluginFileAsync(
                         file, plugin.UniqueId, "1.0.0");
 
                     var version = new PluginVersion
@@ -128,6 +128,7 @@ namespace RevitPluginUpdater.Server.Controllers
                         FilePath = filePath,
                         FileSize = fileSize,
                         FileHash = fileHash,
+                        FileContent = fileContent, // Сохраняем содержимое в БД
                         CreatedAt = DateTime.UtcNow
                     };
 
@@ -199,7 +200,7 @@ namespace RevitPluginUpdater.Server.Controllers
                 }
 
                 // Сохраняем файл
-                var (filePath, fileName, fileSize, fileHash) = await _fileService.SavePluginFileAsync(
+                var (filePath, fileName, fileSize, fileHash, fileContent) = await _fileService.SavePluginFileAsync(
                     file, plugin.UniqueId, request.Version);
 
                 var version = new PluginVersion
@@ -211,6 +212,7 @@ namespace RevitPluginUpdater.Server.Controllers
                     FilePath = filePath,
                     FileSize = fileSize,
                     FileHash = fileHash,
+                    FileContent = fileContent, // Сохраняем содержимое в БД
                     CreatedAt = DateTime.UtcNow
                 };
 

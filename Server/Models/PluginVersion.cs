@@ -23,17 +23,20 @@ namespace RevitPluginUpdater.Server.Models
 
         [Required]
         [MaxLength(255)]
-        public string FileName { get; set; } = string.Empty; // Имя файла на диске
+        public string FileName { get; set; } = string.Empty; // Имя файла
 
         [Required]
         [MaxLength(500)]
-        public string FilePath { get; set; } = string.Empty; // Путь к файлу на диске
+        public string FilePath { get; set; } = string.Empty; // Путь к файлу (для совместимости)
 
         public long FileSize { get; set; } // Размер файла в байтах
 
         [Required]
         [MaxLength(64)]
         public string FileHash { get; set; } = string.Empty; // SHA256 хеш файла
+
+        // НОВОЕ: Содержимое файла в базе данных
+        public byte[] FileContent { get; set; } = Array.Empty<byte>();
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
