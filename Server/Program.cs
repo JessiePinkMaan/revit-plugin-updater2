@@ -48,7 +48,7 @@ builder.Services.AddAuthorization();
 
 // Регистрация сервисов
 builder.Services.AddScoped<JwtService>();
-builder.Services.AddScoped<FileService>();
+builder.Services.AddSingleton<InMemoryFileService>(); // Singleton для хранения в памяти
 
 // Настройка CORS
 builder.Services.AddCors(options =>
