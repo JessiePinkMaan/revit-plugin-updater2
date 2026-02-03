@@ -49,9 +49,11 @@ function showLoginPage() {
 }
 
 function showAdminPage() {
+    console.log('Показываем админку...');
     document.getElementById('loginPage').style.display = 'none';
     document.getElementById('adminPage').style.display = 'block';
     document.getElementById('currentUser').textContent = currentUser;
+    console.log('Админка показана');
 }
 
 async function handleLogin(e) {
@@ -69,6 +71,8 @@ async function handleLogin(e) {
     errorDiv.style.display = 'none';
     
     try {
+        console.log('Отправляем запрос авторизации...');
+        
         const response = await fetch(`${API_BASE_URL}/auth/login`, {
             method: 'POST',
             headers: {
@@ -77,20 +81,25 @@ async function handleLogin(e) {
             body: JSON.stringify({ username, password })
         });
         
-        const data = await response.json();
+        console.log('Получен ответ:', response.status);
         
         if (response.ok) {
+            const data = await response.json();
+            console.log('Данные ответа:', data);
+            
             // Сохраняем токен и пользователя
             authToken = data.token;
             currentUser = data.username;
             localStorage.setItem('authToken', authToken);
             localStorage.setItem('currentUser', currentUser);
             
-            console.log('Авторизация успешна');
+            console.log('Токен сохранен, переключаемся на админку');
             showAdminPage();
             loadDashboard();
         } else {
-            showError(errorDiv, data.message || 'Ошибка авторизации');
+            const errorData = await response.json().catch(() => ({ message: 'Ошибка сервера' }));
+            console.error('Ошибка авторизации:', errorData);
+            showError(errorDiv, errorData.message || 'Ошибка авторизации');
         }
     } catch (error) {
         console.error('Ошибка при авторизации:', error);
@@ -190,9 +199,13 @@ async function loadDashboard() {
     
     try {
         const response = await apiRequest(`${API_BASE_URL}/admin/plugins`);
-        if (!response || !response.ok) return;
+        if (!response || !response.ok) {
+            console.error('Ошибка загрузки плагинов:', response?.status);
+            return;
+        }
         
         plugins = await response.json();
+        console.log('Плагины загружены:', plugins.length);
         
         // Обновляем статистику
         updateDashboardStats();
@@ -400,6 +413,8 @@ async function handleVersionUpload(e) {
     const releaseNotes = document.getElementById('releaseNotesInput').value;
     const file = document.getElementById('fileInput').files[0];
     
+    console.log('Загрузка версии:', { pluginId, version, fileName: file?.name, fileSize: file?.size });
+    
     if (!pluginId || !version || !file) {
         showError(null, 'Заполните все обязательные поля');
         return;
@@ -414,15 +429,27 @@ async function handleVersionUpload(e) {
     try {
         const formData = new FormData();
         formData.append('version', version);
-        formData.append('releaseNotes', releaseNotes);
+        formData.append('releaseNotes', releaseNotes || '');
         formData.append('file', file);
         
-        const response = await apiRequest(`${API_BASE_URL}/admin/plugins/${pluginId}/versions`, {
+        console.log('Отправляем FormData:', {
+            version: formData.get('version'),
+            releaseNotes: formData.get('releaseNotes'),
+            fileName: formData.get('file')?.name
+        });
+        
+        const response = await fetch(`${API_BASE_URL}/admin/plugins/${pluginId}/versions`, {
             method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${authToken}`
+                // НЕ добавляем Content-Type для FormData!
+            },
             body: formData
         });
         
-        if (response && response.ok) {
+        console.log('Ответ сервера:', response.status);
+        
+        if (response.ok) {
             console.log('Версия загружена успешно');
             
             // Очищаем форму
@@ -430,8 +457,9 @@ async function handleVersionUpload(e) {
             
             showSuccess('Версия загружена успешно!');
         } else {
-            const error = await response.json();
-            showError(null, error.message || 'Ошибка при загрузке версии');
+            const errorText = await response.text();
+            console.error('Ошибка сервера:', errorText);
+            showError(null, `Ошибка ${response.status}: ${errorText}`);
         }
     } catch (error) {
         console.error('Ошибка при загрузке версии:', error);
