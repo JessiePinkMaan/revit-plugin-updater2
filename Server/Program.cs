@@ -111,13 +111,14 @@ using (var scope = app.Services.CreateScope())
     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     try
     {
-        // Создаем базу данных если её нет
+        // Удаляем и пересоздаем базу данных (для разработки)
+        await context.Database.EnsureDeletedAsync();
         await context.Database.EnsureCreatedAsync();
-        Log.Information("База данных SQLite создана/проверена успешно");
+        Log.Information("База данных SQLite пересоздана успешно");
     }
     catch (Exception ex)
     {
-        Log.Error(ex, "Ошибка при создании базы данных SQLite");
+        Log.Error(ex, "Ошибка при пересоздании базы данных SQLite");
     }
 }
 

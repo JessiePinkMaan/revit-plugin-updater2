@@ -44,10 +44,10 @@ namespace RevitPluginUpdater.Server.Controllers
                     return NotFound(new { message = "Версия плагина не найдена" });
                 }
 
-                var fileResult = await _fileService.GetPluginFileAsync(pluginVersion.FilePath);
+                var fileResult = _fileService.GetPluginFileFromDatabase(pluginVersion.FileContent, pluginVersion.FileName);
                 if (fileResult == null)
                 {
-                    _logger.LogError("Файл плагина не найден на диске: {FilePath}", pluginVersion.FilePath);
+                    _logger.LogError("Файл плагина не найден в базе данных: {FileName}", pluginVersion.FileName);
                     return NotFound(new { message = "Файл плагина не найден" });
                 }
 
@@ -94,10 +94,10 @@ namespace RevitPluginUpdater.Server.Controllers
                     return NotFound(new { message = "Версия плагина не найдена" });
                 }
 
-                var fileResult = await _fileService.GetPluginFileAsync(pluginVersion.FilePath);
+                var fileResult = _fileService.GetPluginFileFromDatabase(pluginVersion.FileContent, pluginVersion.FileName);
                 if (fileResult == null)
                 {
-                    _logger.LogError("Файл плагина не найден на диске: {FilePath}", pluginVersion.FilePath);
+                    _logger.LogError("Файл плагина не найден в базе данных: {FileName}", pluginVersion.FileName);
                     return NotFound(new { message = "Файл плагина не найден" });
                 }
 
@@ -145,10 +145,10 @@ namespace RevitPluginUpdater.Server.Controllers
                     return NotFound(new { message = "Версии плагина не найдены" });
                 }
 
-                var fileResult = await _fileService.GetPluginFileAsync(latestVersion.FilePath);
+                var fileResult = _fileService.GetPluginFileFromDatabase(latestVersion.FileContent, latestVersion.FileName);
                 if (fileResult == null)
                 {
-                    _logger.LogError("Файл плагина не найден на диске: {FilePath}", latestVersion.FilePath);
+                    _logger.LogError("Файл плагина не найден в базе данных: {FileName}", latestVersion.FileName);
                     return NotFound(new { message = "Файл плагина не найден" });
                 }
 
